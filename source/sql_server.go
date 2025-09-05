@@ -97,12 +97,10 @@ func (s *SQLServerSource) GetMinMaxSplitKey() (uint64, uint64, error) {
 		return 0, 0, err
 	}
 
-	// 处理 NULL 值
 	if minSplitKey == nil || maxSplitKey == nil {
 		return 0, 0, nil
 	}
 
-	// 转换为 uint64
 	min64, err := toUint64(minSplitKey)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to convert min value: %w", err)
