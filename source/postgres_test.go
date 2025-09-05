@@ -171,5 +171,5 @@ func TestPostgresSource_AdjustBatchSizeAccordingToSourceDbTable(t *testing.T) {
 	postgresSourceTest, tearDownFunc := setupPostgresSourceTest()
 	defer tearDownFunc()
 	batchSize := postgresSourceTest.postgresSource.AdjustBatchSizeAccordingToSourceDbTable()
-	assert.Equal(t, int64(2), batchSize)
+	assert.Equal(t, uint64(2), batchSize)
 }
