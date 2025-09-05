@@ -79,8 +79,8 @@ func calculateBytesSize(batch [][]interface{}) int {
 }
 
 // IsSplitAccordingMaxGoRoutine checks if the split key is according to the max go routine
-func (w *Worker) IsSplitAccordingMaxGoRoutine(minSplitKey, maxSplitKey, batchSize int64) bool {
-	return (maxSplitKey-minSplitKey)/batchSize > int64(w.Cfg.MaxThread)
+func (w *Worker) IsSplitAccordingMaxGoRoutine(minSplitKey, maxSplitKey, batchSize uint64) bool {
+	return (maxSplitKey-minSplitKey)/batchSize > uint64(w.Cfg.MaxThread)
 }
 
 func (w *Worker) stepBatch() error {
@@ -95,7 +95,7 @@ func (w *Worker) stepBatch() error {
 	}
 	logrus.Infof("db.table is %s.%s, minSplitKey: %d, maxSplitKey : %d", w.Cfg.SourceDB, w.Cfg.SourceTable, minSplitKey, maxSplitKey)
 
-	if w.IsSplitAccordingMaxGoRoutine(minSplitKey, maxSplitKey, w.Cfg.BatchSize) {
+	if w.IsSplitAccordingMaxGoRoutine(minSplitKey, maxSplitKey, uint64(w.Cfg.BatchSize)) {
 		fmt.Println("split according maxGoRoutine", w.Cfg.MaxThread)
 		slimedRange := source.SlimCondition(w.Cfg.MaxThread, minSplitKey, maxSplitKey)
 		fmt.Println("slimedRange", slimedRange)
@@ -103,7 +103,7 @@ func (w *Worker) stepBatch() error {
 		for i := 0; i < w.Cfg.MaxThread; i++ {
 			go func(idx int) {
 				defer wg.Done()
-				conditions := source.SplitConditionAccordingMaxGoRoutine(w.Cfg.SourceSplitKey, w.Cfg.BatchSize, slimedRange[idx][0], slimedRange[idx][1], maxSplitKey)
+				conditions := source.SplitConditionAccordingMaxGoRoutine(w.Cfg.SourceSplitKey, uint64(w.Cfg.BatchSize), slimedRange[idx][0], slimedRange[idx][1], maxSplitKey)
 				logrus.Infof("conditions in one routine: %v", len(conditions))
 				if err != nil {
 					logrus.Errorf("stepBatchWithCondition failed: %v", err)
@@ -120,7 +120,7 @@ func (w *Worker) stepBatch() error {
 		wg.Wait()
 		return nil
 	}
-	conditions := source.SplitCondition(w.Cfg.SourceSplitKey, w.Cfg.BatchSize, minSplitKey, maxSplitKey)
+	conditions := source.SplitCondition(w.Cfg.SourceSplitKey, uint64(w.Cfg.BatchSize), minSplitKey, maxSplitKey)
 	for _, condition := range conditions {
 		wg.Add(1)
 		go func(condition string) {

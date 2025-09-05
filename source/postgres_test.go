@@ -139,8 +139,8 @@ func TestPostgresSource_GetMinMaxSplitKey(t *testing.T) {
 	defer tearDownFunc()
 	min, max, err := postgresSourceTest.postgresSource.GetMinMaxSplitKey()
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), min)
-	assert.Equal(t, int64(2), max)
+	assert.Equal(t, uint64(1), min)
+	assert.Equal(t, uint64(2), max)
 }
 
 func TestPostgresSource_GetMinMaxTimeSplitKey(t *testing.T) {
@@ -171,5 +171,5 @@ func TestPostgresSource_AdjustBatchSizeAccordingToSourceDbTable(t *testing.T) {
 	postgresSourceTest, tearDownFunc := setupPostgresSourceTest()
 	defer tearDownFunc()
 	batchSize := postgresSourceTest.postgresSource.AdjustBatchSizeAccordingToSourceDbTable()
-	assert.Equal(t, int64(2), batchSize)
+	assert.Equal(t, uint64(2), batchSize)
 }
