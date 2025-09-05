@@ -94,7 +94,7 @@ func main() {
 				panic(err)
 			}
 			// adjust batch size according to source db table
-			cfgCopy.BatchSize = src.AdjustBatchSizeAccordingToSourceDbTable()
+			cfgCopy.BatchSize = int64(src.AdjustBatchSizeAccordingToSourceDbTable())
 			w := worker.NewWorker(&cfgCopy, fmt.Sprintf("%s.%s", db, table), ig, src)
 			w.Run(ctx)
 		}

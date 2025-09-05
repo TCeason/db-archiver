@@ -63,7 +63,7 @@ func (s *SQLServerSource) GetSourceReadRowsCount() (int, error) {
 	return rowCount, nil
 }
 
-func (s *SQLServerSource) GetMinMaxSplitKey() (int64, int64, error) {
+func (s *SQLServerSource) GetMinMaxSplitKey() (uint64, uint64, error) {
 	tableName := s.cfg.SourceTable
 	if !strings.Contains(tableName, ".") {
 		tableName = "dbo." + tableName
@@ -85,7 +85,7 @@ func (s *SQLServerSource) GetMinMaxSplitKey() (int64, int64, error) {
 	}
 	defer rows.Close()
 
-	var minSplitKey, maxSplitKey sql.NullInt64
+	var minSplitKey, maxSplitKey interface{}
 	for rows.Next() {
 		err = rows.Scan(&minSplitKey, &maxSplitKey)
 		if err != nil {
@@ -97,32 +97,44 @@ func (s *SQLServerSource) GetMinMaxSplitKey() (int64, int64, error) {
 		return 0, 0, err
 	}
 
-	if !minSplitKey.Valid || !maxSplitKey.Valid {
+	// 处理 NULL 值
+	if minSplitKey == nil || maxSplitKey == nil {
 		return 0, 0, nil
 	}
 
-	return minSplitKey.Int64, maxSplitKey.Int64, nil
+	// 转换为 uint64
+	min64, err := toUint64(minSplitKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert min value: %w", err)
+	}
+
+	max64, err := toUint64(maxSplitKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert max value: %w", err)
+	}
+
+	return min64, max64, nil
 }
 
-func (s *SQLServerSource) AdjustBatchSizeAccordingToSourceDbTable() int64 {
+func (s *SQLServerSource) AdjustBatchSizeAccordingToSourceDbTable() uint64 {
 	minSplitKey, maxSplitKey, err := s.GetMinMaxSplitKey()
 	if err != nil {
-		return s.cfg.BatchSize
+		return uint64(s.cfg.BatchSize)
 	}
 	sourceTableRowCount, err := s.GetSourceReadRowsCount()
 	if err != nil {
-		return s.cfg.BatchSize
+		return uint64(s.cfg.BatchSize)
 	}
 	rangeSize := maxSplitKey - minSplitKey + 1
 	switch {
 	case int64(sourceTableRowCount) <= s.cfg.BatchSize:
 		return rangeSize
-	case rangeSize/int64(sourceTableRowCount) >= 10:
-		return s.cfg.BatchSize * 5
-	case rangeSize/int64(sourceTableRowCount) >= 100:
-		return s.cfg.BatchSize * 20
+	case rangeSize/uint64(sourceTableRowCount) >= 10:
+		return uint64(s.cfg.BatchSize * 5)
+	case rangeSize/uint64(sourceTableRowCount) >= 100:
+		return uint64(s.cfg.BatchSize * 20)
 	default:
-		return s.cfg.BatchSize
+		return uint64(s.cfg.BatchSize)
 	}
 }
 

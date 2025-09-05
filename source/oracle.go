@@ -23,25 +23,25 @@ type OracleSource struct {
 	statsRecorder *DatabendSourceStatsRecorder
 }
 
-func (p *OracleSource) AdjustBatchSizeAccordingToSourceDbTable() int64 {
+func (p *OracleSource) AdjustBatchSizeAccordingToSourceDbTable() uint64 {
 	minSplitKey, maxSplitKey, err := p.GetMinMaxSplitKey()
 	if err != nil {
-		return p.cfg.BatchSize
+		return uint64(p.cfg.BatchSize)
 	}
 	sourceTableRowCount, err := p.GetSourceReadRowsCount()
 	if err != nil {
-		return p.cfg.BatchSize
+		return uint64(p.cfg.BatchSize)
 	}
 	rangeSize := maxSplitKey - minSplitKey + 1
 	switch {
 	case int64(sourceTableRowCount) <= p.cfg.BatchSize:
 		return rangeSize
-	case rangeSize/int64(sourceTableRowCount) >= 10:
-		return p.cfg.BatchSize * 5
-	case rangeSize/int64(sourceTableRowCount) >= 100:
-		return p.cfg.BatchSize * 20
+	case rangeSize/uint64(sourceTableRowCount) >= 10:
+		return uint64(p.cfg.BatchSize * 5)
+	case rangeSize/uint64(sourceTableRowCount) >= 100:
+		return uint64(p.cfg.BatchSize * 20)
 	default:
-		return p.cfg.BatchSize
+		return uint64(p.cfg.BatchSize)
 	}
 }
 
@@ -111,19 +111,23 @@ func (p *OracleSource) GetSourceReadRowsCount() (int, error) {
 	return rowCount, nil
 }
 
-func (p *OracleSource) GetMinMaxSplitKey() (int64, int64, error) {
+func (p *OracleSource) GetMinMaxSplitKey() (uint64, uint64, error) {
 	err := p.SwitchDatabase()
 	if err != nil {
 		return 0, 0, err
 	}
-	rows, err := p.db.Query(fmt.Sprintf("select COALESCE(min(%s),0), COALESCE(max(%s),0) from %s.%s WHERE %s",
-		p.cfg.SourceSplitKey, p.cfg.SourceSplitKey, p.cfg.SourceDB, p.cfg.SourceTable, p.cfg.SourceWhereCondition))
+
+	query := fmt.Sprintf("SELECT COALESCE(MIN(%s), 0), COALESCE(MAX(%s), 0) FROM %s.%s WHERE %s",
+		p.cfg.SourceSplitKey, p.cfg.SourceSplitKey,
+		p.cfg.SourceDB, p.cfg.SourceTable, p.cfg.SourceWhereCondition)
+
+	rows, err := p.db.Query(query)
 	if err != nil {
 		return 0, 0, err
 	}
 	defer rows.Close()
 
-	var minSplitKey, maxSplitKey sql.NullInt64
+	var minSplitKey, maxSplitKey interface{}
 	for rows.Next() {
 		err = rows.Scan(&minSplitKey, &maxSplitKey)
 		if err != nil {
@@ -131,12 +135,22 @@ func (p *OracleSource) GetMinMaxSplitKey() (int64, int64, error) {
 		}
 	}
 
-	// Check if minSplitKey and maxSplitKey are valid (not NULL)
-	if !minSplitKey.Valid || !maxSplitKey.Valid {
+	if minSplitKey == nil || maxSplitKey == nil {
 		return 0, 0, nil
 	}
 
-	return minSplitKey.Int64, maxSplitKey.Int64, nil
+	// 转换为 uint64
+	min64, err := toUint64(minSplitKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert min value: %w", err)
+	}
+
+	max64, err := toUint64(maxSplitKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert max value: %w", err)
+	}
+
+	return min64, max64, nil
 }
 
 func (p *OracleSource) GetMinMaxTimeSplitKey() (string, string, error) {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -15,9 +16,9 @@ import (
 )
 
 type Sourcer interface {
-	AdjustBatchSizeAccordingToSourceDbTable() int64
+	AdjustBatchSizeAccordingToSourceDbTable() uint64
 	GetSourceReadRowsCount() (int, error)
-	GetMinMaxSplitKey() (int64, int64, error)
+	GetMinMaxSplitKey() (uint64, uint64, error)
 	GetMinMaxTimeSplitKey() (string, string, error)
 	DeleteAfterSync() error
 	QueryTableData(threadNum int, conditionSql string) ([][]interface{}, []string, error)
@@ -44,25 +45,25 @@ func NewSource(cfg *config.Config) (Sourcer, error) {
 	}
 }
 
-func SlimCondition(maxThread int, minSplitKey, maxSplitKey int64) [][]int64 {
-	var conditions [][]int64
+func SlimCondition(maxThread int, minSplitKey, maxSplitKey uint64) [][]uint64 {
+	var conditions [][]uint64
 	if minSplitKey > maxSplitKey {
 		return conditions
 	}
-	rangeSize := (maxSplitKey - minSplitKey) / int64(maxThread)
+	rangeSize := (maxSplitKey - minSplitKey) / uint64(maxThread)
 	for i := 0; i < maxThread; i++ {
-		lowerBound := minSplitKey + rangeSize*int64(i)
+		lowerBound := minSplitKey + rangeSize*uint64(i)
 		upperBound := lowerBound + rangeSize
 		if i == maxThread-1 {
 			// Ensure the last condition includes maxSplitKey
 			upperBound = maxSplitKey
 		}
-		conditions = append(conditions, []int64{lowerBound, upperBound})
+		conditions = append(conditions, []uint64{lowerBound, upperBound})
 	}
 	return conditions
 }
 
-func SplitCondition(sourceSplitKey string, batchSize, minSplitKey, maxSplitKey int64) []string {
+func SplitCondition(sourceSplitKey string, batchSize, minSplitKey, maxSplitKey uint64) []string {
 	var conditions []string
 	for {
 		if minSplitKey >= maxSplitKey {
@@ -75,7 +76,7 @@ func SplitCondition(sourceSplitKey string, batchSize, minSplitKey, maxSplitKey i
 	return conditions
 }
 
-func SplitConditionAccordingMaxGoRoutine(sourceSplitKey string, batchSize, minSplitKey, maxSplitKey, allMax int64) <-chan string {
+func SplitConditionAccordingMaxGoRoutine(sourceSplitKey string, batchSize, minSplitKey, maxSplitKey, allMax uint64) <-chan string {
 	conditions := make(chan string, 100) // make a buffered channel
 
 	go func() {
@@ -232,4 +233,27 @@ func parseTimeDynamic(timeStr string) (time.Time, error) {
 	}
 
 	return time.Time{}, fmt.Errorf("failed to parse time: %v", err)
+}
+
+func toUint64(val interface{}) (uint64, error) {
+	switch v := val.(type) {
+	case uint64:
+		return v, nil
+	case int64:
+		if v < 0 {
+			return 0, fmt.Errorf("negative value: %d", v)
+		}
+		return uint64(v), nil
+	case []byte:
+		return strconv.ParseUint(string(v), 10, 64)
+	case string:
+		return strconv.ParseUint(v, 10, 64)
+	case float64:
+		if v < 0 {
+			return 0, fmt.Errorf("negative float value: %f", v)
+		}
+		return uint64(v), nil
+	default:
+		return 0, fmt.Errorf("unexpected type: %T", val)
+	}
 }
