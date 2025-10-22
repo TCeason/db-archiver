@@ -59,7 +59,8 @@ func TestMultipleDbTablesWorkflow(t *testing.T) {
 }
 
 func TestOracleMultiTableWorkflow(t *testing.T) {
-	t.Skip("skip test")
+	t.Skip("skip test - Oracle not available in CI")
+	return
 	fmt.Println("=== TEST ORACLE SOURCE ===")
 	prepareOracleDbxTablex()
 	truncateDatabend("test_table2", "http://databend:databend@localhost:8000")
@@ -243,7 +244,8 @@ func TestMssqlTimeKeyWorkflow(t *testing.T) {
 }
 
 func TestSimpleOracleWorkflow(t *testing.T) {
-	t.Skip("skip test")
+	t.Skip("skip test - Oracle not available in CI")
+	return
 	fmt.Println("=== TEST ORACLE SOURCE ===")
 	prepareOracle()
 	truncateDatabend("test_table", "http://databend:databend@localhost:8000")
