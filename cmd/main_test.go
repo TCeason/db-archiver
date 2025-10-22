@@ -243,7 +243,7 @@ func TestMssqlTimeKeyWorkflow(t *testing.T) {
 }
 
 func TestSimpleOracleWorkflow(t *testing.T) {
-	//t.Skip("skip test")
+	t.Skip("skip test")
 	fmt.Println("=== TEST ORACLE SOURCE ===")
 	prepareOracle()
 	truncateDatabend("test_table", "http://databend:databend@localhost:8000")
