@@ -218,21 +218,18 @@ func (p *OracleSource) QueryTableData(threadNum int, conditionSql string) ([][]i
 	scanArgs := make([]interface{}, len(columns))
 	for i, columnType := range columnTypes {
 		switch columnType.DatabaseTypeName() {
-		case "INT", "SMALLINT", "TINYINT", "MEDIUMINT", "BIGINT", "INT4", "INT8", "NUMBER":
-			scanArgs[i] = new(sql.NullInt64)
-		case "UNSIGNED INT", "UNSIGNED TINYINT", "UNSIGNED MEDIUMINT", "UNSIGNED BIGINT":
-			scanArgs[i] = new(sql.NullInt64)
-		case "FLOAT", "DOUBLE", "FLOAT8":
+		case "NUMBER", "INTEGER", "FLOAT", "BINARY_FLOAT", "BINARY_DOUBLE":
 			scanArgs[i] = new(sql.NullFloat64)
-		case "DECIMAL", "NUMERIC":
-			scanArgs[i] = new(sql.NullFloat64)
-		case "CHAR", "VARCHAR", "VARCHAR2", "TEXT", "TINYTEXT", "MEDIUMTEXT", "LONGTEXT":
+		case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "CLOB", "NCLOB":
 			scanArgs[i] = new(sql.NullString)
-		case "DATE", "TIME", "DATETIME", "TIMESTAMP":
-			scanArgs[i] = new(sql.NullString) // or use time.Time
-		case "BOOL", "BOOLEAN":
-			scanArgs[i] = new(sql.NullBool)
+		case "DATE", "TimeStampDTY", "TimeStampTZ_DTY", "TimeStampLTZ_DTY":
+			scanArgs[i] = new(sql.NullTime)
+		case "IntervalYM_DTY", "IntervalDS_DTY":
+			scanArgs[i] = new(sql.NullString)
+		case "RAW", "LONG", "LongRaw", "OCIBlobLocator", "IBDouble":
+			scanArgs[i] = new(sql.RawBytes)
 		default:
+			log.Printf("Unsupported column type: %s", columnType.DatabaseTypeName())
 			scanArgs[i] = new(sql.RawBytes)
 		}
 	}
@@ -273,6 +270,12 @@ func (p *OracleSource) QueryTableData(threadNum int, conditionSql string) ([][]i
 			case *sql.NullFloat64:
 				if v.Valid {
 					row[i] = v.Float64
+				} else {
+					row[i] = nil
+				}
+			case *sql.NullTime:
+				if v.Valid {
+					row[i] = v.Time
 				} else {
 					row[i] = nil
 				}
