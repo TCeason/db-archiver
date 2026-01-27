@@ -1,162 +1,97 @@
 # bend-archiver
-A simple tool to archive databases to Databend.
+Archive data from common databases into Databend with parallel sync (by key or time range).
 
-## Supported data sources
-| DataSources |  Supported  |
-|:------------|:-----------:|
-| MySQL       |     Yes     |
-| PostgreSQL  |     Yes     |
-| TiDB        |     Yes     |
-| SQL Server  |     Yes     |
-| Oracle      | Coming soon |
-| CSV         | Coming soon |
-| NDJSON      | Coming soon |
+## Supported sources
+| Data source | Supported |
+|:-----------|:---------:|
+| MySQL      |    Yes    |
+| PostgreSQL |    Yes    |
+| TiDB       |    Yes    |
+| SQL Server |    Yes    |
+| Oracle     | Coming soon |
+| CSV        | Coming soon |
+| NDJSON     | Coming soon |
 
+## Install
+Download the binary from the [release page](https://github.com/databendcloud/bend-archiver/releases).
 
-## Installation
-Download the binary from [release page](https://github.com/databendcloud/bend-archiver/releases) according to your arch.
+## Configure
+Create `config/conf.json`.
 
-## Usage
+Required:
+- `sourceHost`, `sourcePort`, `sourceUser`, `sourcePass`
+- `databendDSN`, `databendTable`
+- `sourceWhereCondition`
+- `batchSize`
+- exactly one of `sourceSplitKey` or `sourceSplitTimeKey` (time split also needs `timeSplitUnit`)
+- either `sourceDbTables` or (`sourceDB` + `sourceTable`)
 
-Config your database and Databend connection in `config/conf.json`:
+Common optional:
+- `databaseType`: `mysql` (default), `tidb`, `pg`, `mssql`, `oracle`
+- `sourceDbTables`: `["dbRegex@tableRegex"]` for multi-table sync
+- `timeSplitUnit`: `minute`, `quarter`, `hour`, `day`
+- `copyPurge`, `copyForce`, `disableVariantCheck`: Databend COPY options
+- `maxThread`, `batchMaxInterval`
+- `deleteAfterSync` (uses `sourceWhereCondition`)
+- `userStage`, `sslMode`, `oracleSID`
+- `sourceQuery` is currently ignored
+
+Notes:
+- `sourceWhereCondition` is always required; for time split use `t >= '...' and t < '...'` with `YYYY-MM-DD HH:MM:SS`.
+- `sourceSplitKey` and `sourceSplitTimeKey` are mutually exclusive.
+
+Example (key split):
 ```json
 {
+  "databaseType": "mysql",
   "sourceHost": "127.0.0.1",
   "sourcePort": 3306,
   "sourceUser": "root",
   "sourcePass": "123456",
-  "sourceDbTables": ["mydb.*@test_table.*"],
+  "sourceDB": "mydb",
+  "sourceTable": "test_table",
   "sourceWhereCondition": "id > 0",
   "sourceSplitKey": "id",
-  "databendDSN": "databend://username:password@host:port?sslmode=disable",
-  "databendTable": "mydb.test_table3",
+  "databendDSN": "http://user:password@host:8000",
+  "databendTable": "mydb.test_table",
   "batchSize": 40000,
-  "batchMaxInterval": 30,
-  "maxThread": 5,
-  "copyPurge": true,
-  "copyForce": false,
-  "disableVariantCheck": true,
-  "userStage": "~",
-  "deleteAfterSync": false
+  "maxThread": 5
 }
-
 ```
 
-Run the tool and start your sync:
-```bash
-./bend-archiver -f conf.json
-```
-
-The log output:
-```
-INFO[0000] Starting worker              
-2024/06/25 11:35:37 ingest 2 rows (0.565646 rows/s), 64 bytes (18.100678 bytes/s)
-2024/06/25 11:35:38 ingest 1 rows (0.556652 rows/s), 33 bytes (17.812853 bytes/s)
-2024/06/25 11:35:38 ingest 2 rows (0.551906 rows/s), 65 bytes (17.660995 bytes/s)
-2024/06/25 11:35:38 ingest 2 rows (0.531644 rows/s), 64 bytes (17.012600 bytes/s)
-2024/06/25 11:35:38 ingest 2 rows (0.531768 rows/s), 64 bytes (17.016584 bytes/s)
-```
-
-
-## Parameter References
-| Parameter            | Description                                                                                          | Default  | example                       | required |
-|----------------------|------------------------------------------------------------------------------------------------------|----------|-------------------------------|----------|
-| sourceHost           | source host                                                                                          |          |                               | true     |
-| sourcePort           | source port                                                                                          | 3306     | 3306                          | true     |
-| sourceUser           | source user                                                                                          |          |                               | true     |
-| sourcePass           | source password                                                                                      |          |                               | true     |
-| sourceDB             | source database                                                                                      |          |                               | false     |
-| sourceTable          | source table                                                                                         |          |                               | false     |
-| sourceDbTables       | source db tables                                                                                     | []       | [db.*@table.*,mydb.*.table.*] | false    |
-| sourceQuery          | source query, which is query SQL to fetch data                                                       |          |                               | false     |
-| sourceWhereCondition | source where condition, the condition SQL to limit the query                                         |          |                               | false    |
-| sourceSplitKey       | source split key, the column name to split the data, must be integer type primary key                | no       | "id"                          | false    |                    | no       | "id"                          | false    |                                        | no       | "id"                          | false    |
-| sourceSplitTimeKey   | source split time key, the column name to split the data by time, must be time type                  | no       | "t1"                          | false    |
-| timeSplitUnit        | time split unit, the unit of time split, can be `minute`, `hour`, `day`                                                           | "minute" | "day"                         | false    |
-| databendDSN          | databend dsn                                                                                         | no       | "http://localhost:8000"       | true     |
-| databendTable        | databend table                                                                                       | no       | "db1.tbl"                     | true     |
-| batchSize            | batch size, the number of rows to sync in one batch                                                  | 1000     | 1000                          | false    |
-| copyPurge            | copy purge, refer to https://docs.databend.com/sql/sql-commands/dml/dml-copy-into-table#copy-options | false    | false                         | false    |
-| copyForce            | copy force                                                                                           | false    | false                         | false    |
-| DisableVariantCheck  | disable variant check                                                                                | false    | false                         | false    |
-| userStage            | user external stage name                                                                             | ~        | ~                             | false    |
-
-NOTE: 
-
-1. To reduce the server load, we set the `sourceSplitKey` which is the primary key of the source table and type must be integer. The tool will split the data by the `sourceSplitKey` and sync the data to Databend in parallel.
-The `sourceSplitTimeKey` is used to split the data by the time column. And the `sourceSplitTimeKey` and `sourceSplitKey` must be set at least one.
-
-2. `sourceDbTables` is used to sync the data from multiple tables. The format is `db.*@table.*` or `db.table.*`. The `.*` is a regex pattern. The `db.*@table.*` means all tables match the regex pattern `table.*` in the database match the regex pattern `db.*`.
-  
-3. `sourceDbTables` has a higher priority than `sourceTable` and `sourceDB`. If `sourceDbTables` is set, the `sourceTable` will be ignored.
-  
-4. The `database` and `table` all support regex pattern.
- 
-5. If you set `sourceDbTables` the `sourceQuery` no need to set. In other words, the proirity of `sourceDbTables` if high than `sourceQuery`.
-
-6. The `copyPurge` and `copyForce`, `DisableVariantCheck` can found in this [doc](https://docs.databend.com/sql/sql-commands/dml/dml-copy-into-table#copy-options).
-
-
-## Two modes
-### Sync data according to the `sourceSplitKey`
-If your source table has a primary key, you can set the `sourceSplitKey` to sync the data in parallel. The tool will split the data by the `sourceSplitKey` and sync the data to Databend in parallel.
-It is the most high performance mode.
-Th example of the `conf.json`:
+Example (time split keys):
 ```json
 {
-  "sourceHost": "0.0.0.0",
-  "sourcePort": 3306,
-  "sourceUser": "root",
-  "sourcePass": "123456",
-    "sourceDB": "mydb",
-  "sourceTable": "my_table",
-  "sourceQuery": "select * from mydb.my_table",
-  "sourceWhereCondition": "id < 100",
-  "sourceSplitKey": "id",
-  "databendDSN": "databend://cloudapp:password@tn3ftqihs--medium-p8at.gw.aws-us-east-2.default.databend.com:443",
-  "databendTable": "testSync.my_table",
-  "batchSize": 2,
-  "batchMaxInterval": 30,
-  "workers": 1,
-  "copyPurge": false,
-  "copyForce": false,
-  "disableVariantCheck": false,
-  "userStage": "~",
-  "deleteAfterSync": false,
-  "maxThread": 10
+  "sourceWhereCondition": "t1 >= '2024-06-01 00:00:00' and t1 < '2024-07-01 00:00:00'",
+  "sourceSplitTimeKey": "t1",
+  "timeSplitUnit": "hour"
 }
 ```
 
-### Sync data according to the `sourceSplitTimeKey`
-If your source table has a time column, you can set the `sourceSplitTimeKey` to sync the data in parallel. The tool will split the data by the `sourceSplitTimeKey` and sync the data to Databend in parallel.
-The `sourceSplitTimeKey` must be set with `timeSplitUnit`. The `timeSplitUnit` can be `minute`, `hour`, `day`. The `timeSplitUnit` is used to split the data by the time column.
-The example of the `conf.json`:
-```json
- "sourceHost": "127.0.0.1",
-  "sourcePort": 3306,
-  "sourceUser": "root",
-  "sourcePass": "12345678",
-  "sourceDB": "mydb",
-  "sourceTable": "test_table1",
-  "sourceQuery": "select * from mydb.test_table1",
-  "sourceWhereCondition": "t1 >= '2024-06-01' and t1 < '2024-07-01'",
-  "sourceSplitKey": "",
-  "sourceSplitTimeKey": "t1",
-  "timeSplitUnit": "hour",
-  "databendDSN": "databend://cloudapp:password@tn3ftqihs--medium-p8at.gw.aws-us-east-2.default.databend.com:443",
-  "databendTable": "default.test_table1",
-  "batchSize": 10000,
-  "batchMaxInterval": 30,
-  "copyPurge": true,
-  "copyForce": false,
-  "disableVariantCheck": true,
-  "userStage": "~",
-  "deleteAfterSync": false,
-  "maxThread": 10
+## Run
+```bash
+./bend-archiver -f config/conf.json
 ```
-NOTE:
+If `-f` is omitted, it loads `config/conf.json`.
 
-1. If you set `sourceSplitTimeKey` the `sourceWhereCondition` format must be `t > xx and t < yy`.
+## Build
+```bash
+go build -o bend-archiver ./cmd
+```
 
+## Tests
+```bash
+go test ./...
+```
+Tests in `cmd` and `source` expect local databases (Databend plus the source DBs in the tests).
 
-NOTE: The `mysql-go` will handle the bool type as TINYINT(1). So you need to use `TINYINT` in databend to store the bool type.
+## Development
+Run from source:
+```bash
+go run ./cmd -f config/conf.json
+```
+
+## Notes
+- Multi-table sync uses regex in `sourceDbTables` (example: `["^mydb$@^test_table_.*$"]`).
+- The MySQL driver reports BOOL as `TINYINT(1)`, so use `TINYINT` in Databend for boolean columns.
+- COPY options reference: https://docs.databend.com/sql/sql-commands/dml/dml-copy-into-table#copy-options
