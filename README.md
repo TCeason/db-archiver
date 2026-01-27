@@ -18,27 +18,39 @@ Download the binary from the [release page](https://github.com/databendcloud/ben
 ## Configure
 Create `config/conf.json`.
 
-Required:
-- `sourceHost`, `sourcePort`, `sourceUser`, `sourcePass`
-- `databendDSN`, `databendTable`
-- `sourceWhereCondition`
-- `batchSize`
-- exactly one of `sourceSplitKey` or `sourceSplitTimeKey` (time split also needs `timeSplitUnit`)
-- either `sourceDbTables` or (`sourceDB` + `sourceTable`)
+Parameters (defaults are from code):
+| Key | Required | Default | Notes |
+|:----|:--------:|:--------|:------|
+| `databaseType` | No | `mysql` | `mysql`, `tidb`, `pg`, `mssql`, `oracle` |
+| `sourceHost` | Yes | - | Source host |
+| `sourcePort` | Yes | - | Source port |
+| `sourceUser` | Yes | - | Source user |
+| `sourcePass` | Yes | - | Source password |
+| `sourceDB` | If no `sourceDbTables` | - | Source database |
+| `sourceTable` | If no `sourceDbTables` | - | Source table |
+| `sourceDbTables` | No | `[]` | Multi-table: `["dbRegex@tableRegex"]` |
+| `sourceQuery` | No | - | Currently ignored |
+| `sourceWhereCondition` | Yes | - | WHERE clause without `WHERE` |
+| `sourceSplitKey` | If key split | - | Integer primary key |
+| `sourceSplitTimeKey` | If time split | - | Time column |
+| `timeSplitUnit` | If time split | `hour` | `minute`, `quarter`, `hour`, `day` |
+| `sslMode` | No | `disable` | Postgres only |
+| `databendDSN` | Yes | `localhost:8000` | Databend DSN |
+| `databendTable` | Yes | - | Target table |
+| `batchSize` | Yes | `1000` | Rows per batch |
+| `batchMaxInterval` | No | `3` | Seconds between batches |
+| `copyPurge` | No | `true` | Databend COPY option |
+| `copyForce` | No | `false` | Databend COPY option |
+| `disableVariantCheck` | No | `true` | Databend COPY option |
+| `userStage` | No | `~` | Databend stage |
+| `deleteAfterSync` | No | `false` | Deletes source rows |
+| `maxThread` | No | `1` | Max concurrency |
+| `oracleSID` | No | - | Oracle SID |
 
-Common optional:
-- `databaseType`: `mysql` (default), `tidb`, `pg`, `mssql`, `oracle`
-- `sourceDbTables`: `["dbRegex@tableRegex"]` for multi-table sync
-- `timeSplitUnit`: `minute`, `quarter`, `hour`, `day`
-- `copyPurge`, `copyForce`, `disableVariantCheck`: Databend COPY options
-- `maxThread`, `batchMaxInterval`
-- `deleteAfterSync` (uses `sourceWhereCondition`)
-- `userStage`, `sslMode`, `oracleSID`
-- `sourceQuery` is currently ignored
-
-Notes:
+Rules:
 - `sourceWhereCondition` is always required; for time split use `t >= '...' and t < '...'` with `YYYY-MM-DD HH:MM:SS`.
 - `sourceSplitKey` and `sourceSplitTimeKey` are mutually exclusive.
+- For time split, `timeSplitUnit` is required.
 
 Example (key split):
 ```json
@@ -74,19 +86,19 @@ Example (time split keys):
 ```
 If `-f` is omitted, it loads `config/conf.json`.
 
-## Build
+## Development
+### Build
 ```bash
 go build -o bend-archiver ./cmd
 ```
 
-## Tests
+### Tests
 ```bash
 go test ./...
 ```
 Tests in `cmd` and `source` expect local databases (Databend plus the source DBs in the tests).
 
-## Development
-Run from source:
+### Run from source
 ```bash
 go run ./cmd -f config/conf.json
 ```
