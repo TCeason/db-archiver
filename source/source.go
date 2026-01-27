@@ -12,7 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 
-	"github.com/databendcloud/db-archiver/config"
+	"github.com/databendcloud/bend-archiver/config"
 )
 
 type Sourcer interface {

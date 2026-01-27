@@ -14,10 +14,10 @@ import (
 	go_ora "github.com/sijms/go-ora/v2"
 	"github.com/test-go/testify/assert"
 
-	cfg "github.com/databendcloud/db-archiver/config"
-	"github.com/databendcloud/db-archiver/ingester"
-	"github.com/databendcloud/db-archiver/source"
-	"github.com/databendcloud/db-archiver/worker"
+	cfg "github.com/databendcloud/bend-archiver/config"
+	"github.com/databendcloud/bend-archiver/ingester"
+	"github.com/databendcloud/bend-archiver/source"
+	"github.com/databendcloud/bend-archiver/worker"
 
 	_ "github.com/datafuselabs/databend-go"
 )

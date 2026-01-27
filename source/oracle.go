@@ -14,7 +14,7 @@ import (
 
 	_ "github.com/sijms/go-ora/v2"
 
-	"github.com/databendcloud/db-archiver/config"
+	"github.com/databendcloud/bend-archiver/config"
 )
 
 type OracleSource struct {

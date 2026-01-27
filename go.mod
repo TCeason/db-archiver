@@ -1,4 +1,4 @@
-module github.com/databendcloud/db-archiver
+module github.com/databendcloud/bend-archiver
 
 go 1.23.0
 

@@ -18,8 +18,8 @@ import (
 
 	godatabend "github.com/datafuselabs/databend-go"
 
-	"github.com/databendcloud/db-archiver/config"
-	"github.com/databendcloud/db-archiver/source"
+	"github.com/databendcloud/bend-archiver/config"
+	"github.com/databendcloud/bend-archiver/source"
 )
 
 var (

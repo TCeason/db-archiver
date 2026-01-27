@@ -1,4 +1,4 @@
-# db-archiver
+# bend-archiver
 A simple tool to archive databases to Databend.
 
 ## Supported data sources
@@ -14,7 +14,7 @@ A simple tool to archive databases to Databend.
 
 
 ## Installation
-Download the binary from [release page](https://github.com/databendcloud/db-archiver/releases) according to your arch.
+Download the binary from [release page](https://github.com/databendcloud/bend-archiver/releases) according to your arch.
 
 ## Usage
 
@@ -44,7 +44,7 @@ Config your database and Databend connection in `config/conf.json`:
 
 Run the tool and start your sync:
 ```bash
-./db-archiver -f conf.json
+./bend-archiver -f conf.json
 ```
 
 The log output:
