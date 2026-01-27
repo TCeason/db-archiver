@@ -11,7 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
-	"github.com/databendcloud/db-archiver/config"
+	"github.com/databendcloud/bend-archiver/config"
 )
 
 type PostgresSource struct {

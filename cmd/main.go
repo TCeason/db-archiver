@@ -13,10 +13,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/databendcloud/db-archiver/config"
-	"github.com/databendcloud/db-archiver/ingester"
-	"github.com/databendcloud/db-archiver/source"
-	"github.com/databendcloud/db-archiver/worker"
+	"github.com/databendcloud/bend-archiver/config"
+	"github.com/databendcloud/bend-archiver/ingester"
+	"github.com/databendcloud/bend-archiver/source"
+	"github.com/databendcloud/bend-archiver/worker"
 )
 
 func main() {

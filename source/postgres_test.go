@@ -7,8 +7,8 @@ import (
 
 	"github.com/test-go/testify/assert"
 
-	"github.com/databendcloud/db-archiver/config"
-	"github.com/databendcloud/db-archiver/utils/testutils"
+	"github.com/databendcloud/bend-archiver/config"
+	"github.com/databendcloud/bend-archiver/utils/testutils"
 )
 
 type postgresSourceTest struct {

@@ -38,15 +38,15 @@ jobs:
           cd cmd && \
           ${{ env.GO_BUILD_ENV }} GOOS=${{ steps.get_matrix.outputs.OS }} GOARCH=${{ steps.get_matrix.outputs.ARCH }} \
             go build \
-            -o _bin/db-archiver/${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}/db-archiver
+            -o _bin/bend-archiver/${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}/bend-archiver
       - name: Compress
         run: |
-          cd cmd/_bin/db-archiver && \
+          cd cmd/_bin/bend-archiver && \
           ${{ env.DIST_DIRS }} cp ../../LICENSE {} \; && \
           ${{ env.DIST_DIRS }} cp ../../README.md {} \; && \
-          ${{ env.DIST_DIRS }} tar -zcf db-archiver-{}-${{ github.ref_name }}.tar.gz {} \; && \
+          ${{ env.DIST_DIRS }} tar -zcf bend-archiver-{}-${{ github.ref_name }}.tar.gz {} \; && \
           cd .. && \
-          sha256sum db-archiver/db-archiver-*-${{ github.ref_name }}.tar.gz >> sha256-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}.txt
+          sha256sum bend-archiver/bend-archiver-*-${{ github.ref_name }}.tar.gz >> sha256-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}.txt
       - name: Delete existing asset
         uses: actions/github-script@v6
         with:
@@ -58,7 +58,7 @@ jobs:
               repo: context.repo.repo,
               tag: '${{ github.ref_name }}'
             });
-            const asset_name = 'db-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz';
+            const asset_name = 'bend-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz';
             for (const asset of release.data.assets) {
               if (asset.name === asset_name) {
                 await github.rest.repos.deleteReleaseAsset({
@@ -70,12 +70,12 @@ jobs:
                 break;
               }
             }
-      - name: Upload db-archiver tar.gz
+      - name: Upload bend-archiver tar.gz
         uses: actions/upload-release-asset@v1.0.2
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: cmd/_bin/db-archiver/db-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz
-          asset_name: db-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz
+          asset_path: cmd/_bin/bend-archiver/bend-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz
+          asset_name: bend-archiver-${{ steps.get_matrix.outputs.OS }}-${{ steps.get_matrix.outputs.ARCH }}-${{ github.ref_name }}.tar.gz
           asset_content_type: application/gzip
       - name: Post sha256
         uses: actions/upload-artifact@v4

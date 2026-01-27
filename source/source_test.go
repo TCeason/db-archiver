@@ -8,7 +8,7 @@ import (
 
 	"github.com/test-go/testify/assert"
 
-	"github.com/databendcloud/db-archiver/config"
+	"github.com/databendcloud/bend-archiver/config"
 )
 
 func TestSlimCondition(t *testing.T) {
