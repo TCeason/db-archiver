@@ -52,7 +52,7 @@ Example (key split):
   "sourceTable": "test_table",
   "sourceWhereCondition": "id > 0",
   "sourceSplitKey": "id",
-  "databendDSN": "http://user:password@host:8000",
+  "databendDSN": "databend://username:password@host:port?sslmode=disable",
   "databendTable": "mydb.test_table",
   "batchSize": 40000,
   "maxThread": 5
