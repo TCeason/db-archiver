@@ -63,7 +63,7 @@ type Config struct {
 	DisableVariantCheck bool   `json:"disableVariantCheck" default:"true"`
 	UserStage           string `json:"userStage" default:"~"`
 	DeleteAfterSync     bool   `json:"deleteAfterSync" default:"false"`
-	MaxThread           int    `json:"maxThread" default:"1"`
+	MaxThread           int    `json:"maxThread" default:"1"` // only supported with SourceSplitKey (auto increment)
 	// Oracle
 	OracleSID string `json:"oracleSID"`
 }
@@ -106,6 +106,9 @@ func preCheckConfig(cfg *Config) {
 		}
 	}
 	if cfg.SourceSplitTimeKey != "" {
+		if cfg.MaxThread > 1 {
+			panic("SourceSplitTimeKey does not support MaxThread > 1; use SourceSplitKey for parallelism")
+		}
 		// time warehouse condition must be  x < time and y > time
 		err := validateSourceSplitTimeKey(cfg.SourceWhereCondition)
 		if err != nil {

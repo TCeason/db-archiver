@@ -136,7 +136,11 @@ func (w *Worker) stepBatch() error {
 }
 
 func (w *Worker) StepBatchByTimeSplitKey() error {
-	wg := &sync.WaitGroup{}
+	// Time-based splitting uses LIMIT/OFFSET over a non-unique, mutable key,
+	// so running multiple goroutines risks duplicates/omissions.
+	if w.Cfg.MaxThread > 1 {
+		return fmt.Errorf("time split does not support MaxThread > 1; use auto increment split key")
+	}
 	minSplitKey, maxSplitKey, err := w.Src.GetMinMaxTimeSplitKey()
 	if err != nil {
 		return err
@@ -150,36 +154,22 @@ func (w *Worker) StepBatchByTimeSplitKey() error {
 	}
 	fmt.Println("allConditions: ", len(allConditions))
 	fmt.Println("all split conditions", allConditions)
-	slimedRange := source.SplitTimeConditionsByMaxThread(allConditions, w.Cfg.MaxThread)
-	fmt.Println(len(slimedRange))
-	fmt.Println("slimedRange", slimedRange)
-	wg.Add(w.Cfg.MaxThread)
-	for i := 0; i < 1; i++ {
-		go func(idx int) {
-			defer wg.Done()
-			conditions := slimedRange[idx]
-			logrus.Infof("conditions in one routine: %d", len(conditions))
-			if err != nil {
-				logrus.Errorf("stepBatchWithCondition failed: %v", err)
-			}
-			for _, condition := range conditions {
-				logrus.Infof("condition: %s", condition)
-				switch w.Cfg.DatabaseType {
-				case "mysql":
-					err = w.stepBatchWithTimeCondition(condition, w.Cfg.BatchSize)
-				case "mssql":
-					err = w.stepBatchWithTimeConditionMssql(condition, w.Cfg.BatchSize)
-				default:
-					err = w.stepBatchWithTimeCondition(condition, w.Cfg.BatchSize)
-				}
-				if err != nil {
-					logrus.Errorf("stepBatchWithCondition failed: %v", err)
-				}
-			}
-		}(i)
-	}
-	wg.Wait()
 
+	for _, condition := range allConditions {
+		logrus.Infof("condition: %s", condition)
+		switch w.Cfg.DatabaseType {
+		case "mysql":
+			err = w.stepBatchWithTimeCondition(condition, w.Cfg.BatchSize)
+		case "mssql":
+			err = w.stepBatchWithTimeConditionMssql(condition, w.Cfg.BatchSize)
+		default:
+			err = w.stepBatchWithTimeCondition(condition, w.Cfg.BatchSize)
+		}
+		if err != nil {
+			logrus.Errorf("stepBatchWithCondition failed: %v", err)
+			return err
+		}
+	}
 	return nil
 }
 
